@@ -30,7 +30,7 @@ public class ConsumerDemo
 
         //connect to Localhost
         properties.setProperty("bootstrap.servers", "127.0.0.1:9092");
-        /* the above is equivalent to --bootstrap-server localhost:9092
+        /* the above line of code is equivalent to --bootstrap-server localhost:9092
         when invoking the Kafka CLI commands*/
         //to connect to a secure cluster, you will need to set more properties
         //properties.setProperty("security.protocol", "SASL_SSL"); //HERE ON THE VALUE PART, THE TYPE OF SECURITY PROTOCOL CAN BE CHANGED TO WHATEVER IS THE SECURITY PROTOCOL WE ARE USING

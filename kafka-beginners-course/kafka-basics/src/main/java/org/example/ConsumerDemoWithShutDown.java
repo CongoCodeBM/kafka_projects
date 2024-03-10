@@ -41,7 +41,7 @@ public class ConsumerDemoWithShutDown
 
         properties.setProperty("group.id", groupId);
 
-        //none: if we don't have any existing consumer group we fail. We must set the consumer group before starting the application
+        //none: if we do not have any existing consumer group we fail. We must set the consumer group before starting the application
         //earliest: read from the beginning of my topic: in the kafka-console-consumer CLI command, it is the --from-beginning part
         //latest: read only new messages
         properties.setProperty("auto.offset.reset", "earliest");

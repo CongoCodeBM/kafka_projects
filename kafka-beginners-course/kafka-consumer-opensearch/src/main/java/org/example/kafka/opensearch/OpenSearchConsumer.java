@@ -11,6 +11,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
@@ -117,6 +118,28 @@ public class OpenSearchConsumer
         //create our Kafka Client
         KafkaConsumer<String, String> consumer = createKafkaConsumer();
 
+        //Get a reference to the main thread
+        final Thread mainThread = Thread.currentThread();
+
+        //Adding the shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+                public void run() {
+                     log.info("Detected a shutdown, let's exit by calling consumer.wakeup()...");
+                     consumer.wakeup(); //when we do consumer.poll method call, it is going to throw a wakeup exception
+
+                     //join the main thread to allow the execution of the code in the main thread
+                     try
+                     {
+                         mainThread.join();
+                     }
+                     catch(InterruptedException e)
+                     {
+                         e.printStackTrace();
+                     }
+                 }
+             }
+        );
+
         // we need to create and execute the index on OpenSearch if it does not exist already
         try(openSearchClient; consumer) //if the try block succeeds or fails, the openSearchClient is going to be closed no matter what
         {
@@ -184,18 +207,26 @@ public class OpenSearchConsumer
                     {
                         e.printStackTrace();
                     }
+
+                    //commit offsets after the batch is consumed
+                    consumer.commitSync();
+                    log.info("Offsets have been committed!");
                 }
-
-                //commit offsets after the batch is consumed
-                consumer.commitSync();
-                log.info("Offsets have been committed!");
             }
-
-
         }
-
-
-        //close things
-        // openSearchClient.close(); //without the try with resources block on openSearchClient
+        catch(WakeupException e)
+        {
+            log.info("Consumer is starting to shut down");
+        }
+        catch(Exception e)
+        {
+            log.error("Unexpected exception in the consumer" , e);
+        }
+        finally
+        {
+            consumer.close(); //close the consumer, this will also commit offsets
+            openSearchClient.close();
+            log.info("The consumer is now gracefully shutdown");
+        }
     }
 }

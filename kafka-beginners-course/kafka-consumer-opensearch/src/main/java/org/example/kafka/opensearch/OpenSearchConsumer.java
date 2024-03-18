@@ -12,6 +12,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.RequestOptions;
@@ -140,6 +142,8 @@ public class OpenSearchConsumer
                 int recordCount = records.count();
                 log.info("Received " + recordCount + " record(s)");
 
+                BulkRequest bulkRequest = new BulkRequest();
+
                 for(ConsumerRecord<String, String> record : records)
                 {
                     //send the record into OpenSearch
@@ -149,7 +153,6 @@ public class OpenSearchConsumer
                              //define an ID using Kafka Record coordinates
                     //String id = record.topic() + "_" + record.partition() + "_" + record.offset();
 
-
                     try
                     {
                                 //strategy 2 (better)
@@ -158,14 +161,29 @@ public class OpenSearchConsumer
                         IndexRequest indexRequest = new IndexRequest("wikimedia") //create a new index request to index some data in OpenSearch
                                 .source(record.value(), XContentType.JSON).id(id); //what is the source of our data, and what is the type of data we are sending to OpenSearch
 
-                        IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT); //send the above index request into OpenSearch
+//                        IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT); //send the above index request into OpenSearch
+                        bulkRequest.add(indexRequest);
+
                         //log.info(response.getId());
                     }
                     catch(Exception e)
                     {
 
                     }
+                }
 
+                if(bulkRequest.numberOfActions()>0)
+                {
+                    BulkResponse bulkResponse = openSearchClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+                    log.info("Inserted " + bulkResponse.getItems().length + " record(s).");
+                    try
+                    {
+                        Thread.sleep(1000);
+                    }
+                    catch(InterruptedException e)
+                    {
+                        e.printStackTrace();
+                    }
                 }
 
                 //commit offsets after the batch is consumed

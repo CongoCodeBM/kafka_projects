@@ -87,6 +87,8 @@ public class OpenSearchConsumer
         //earliest: read from the beginning of my topic: in the kafka-console-consumer CLI command, it is the --from-beginning part
         //latest: read only new messages
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+
 
         //create a consumer
         return new KafkaConsumer<>(properties);
@@ -157,7 +159,7 @@ public class OpenSearchConsumer
                                 .source(record.value(), XContentType.JSON).id(id); //what is the source of our data, and what is the type of data we are sending to OpenSearch
 
                         IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT); //send the above index request into OpenSearch
-                        log.info(response.getId());
+                        //log.info(response.getId());
                     }
                     catch(Exception e)
                     {
@@ -165,6 +167,10 @@ public class OpenSearchConsumer
                     }
 
                 }
+
+                //commit offsets after the batch is consumed
+                consumer.commitSync();
+                log.info("Offsets have been committed!");
             }
 
 

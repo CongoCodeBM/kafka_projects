@@ -34,7 +34,6 @@ import java.util.Properties;
 
 public class OpenSearchConsumer
 {
-
     public static RestHighLevelClient createOpenSearchClient()
     {
         String connString = "http://localhost:9200"; //using Docker
